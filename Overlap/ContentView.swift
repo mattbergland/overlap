@@ -55,6 +55,9 @@ struct ContentView: View {
                                                 removal: .opacity))
                     }
                 }
+                .overlay(alignment: .topLeading) {
+                    stripOverlay
+                }
                 .animation(.snappy, value: store.places)
 
                 if let selection {
@@ -80,10 +83,90 @@ struct ContentView: View {
         )
         .preferredColorScheme(.dark)
         .environment(\.colorScheme, .dark)
+        .overlay {
+            // inner stroke + top sheen
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.white.opacity(0.06), .clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 80)
+                Spacer()
+            }
+            .allowsHitTesting(false)
+        }
         .animation(.snappy, value: selection != nil)
         .animation(.snappy, value: hoverHour)
         .onExitCommand {
             if !query.isEmpty { query = "" } else { selection = nil }
+        }
+    }
+
+    /// X offset of the strip inside the rows container (row pad + left col + gap).
+    private var stripX: CGFloat { 10 + Self.leftColumn + Self.columnGap }
+    private var colPitch: CGFloat { Self.stripWidth / 24 }
+
+    private var nowFraction: Double? {
+        guard isToday else { return nil }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = home
+        let f = now.timeIntervalSince(cal.startOfDay(for: selectedDate)) / 3600
+        return (f >= 0 && f <= 24) ? f : nil
+    }
+
+    private var nowTimeLabel: String {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = home
+        let h = cal.component(.hour, from: now)
+        let m = cal.component(.minute, from: now)
+        if use24 { return String(format: "%d:%02d", h, m) }
+        return String(format: "%d:%02d", (h % 12 == 0) ? 12 : h % 12, m)
+    }
+
+    private func homeRangeLabel(_ sel: ClosedRange<Int>) -> String {
+        let f: (Int) -> String = { h in
+            let hh = h % 24
+            if use24 { return "\(hh):00" }
+            return "\((hh % 12 == 0) ? 12 : hh % 12):00"
+        }
+        let end = sel.upperBound + 1
+        let suffix = use24 ? "" : " \(end % 24 < 12 ? "AM" : "PM")"
+        return "\(f(sel.lowerBound)) – \(f(end))\(suffix)"
+    }
+
+    /// Now-line spanning all rows + time pill, and selection range pill.
+    @ViewBuilder
+    private var stripOverlay: some View {
+        if let frac = nowFraction {
+            Capsule()
+                .fill(Theme.accentVertical)
+                .frame(width: 2)
+                .shadow(color: Theme.accentB.opacity(0.6), radius: 6)
+                .padding(.vertical, -10)
+                .overlay(alignment: .top) {
+                    Text(nowTimeLabel)
+                        .font(.system(size: 9, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.base)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Theme.accent, in: Capsule())
+                        .offset(y: -22)
+                }
+                .offset(x: stripX + CGFloat(frac) * colPitch - 1)
+                .allowsHitTesting(false)
+        }
+        if let sel = selection {
+            Text(homeRangeLabel(sel))
+                .font(.system(size: 8.5, weight: .semibold))
+                .monospacedDigit()
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.12), in: Capsule())
+                .overlay(Capsule().stroke(Theme.accentB.opacity(0.6), lineWidth: 0.5))
+                .fixedSize()
+                .offset(x: stripX + CGFloat(sel.lowerBound) * colPitch, y: -8)
+                .allowsHitTesting(false)
         }
     }
 
@@ -113,10 +196,15 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("OVERLAP")
-                .font(.system(size: 12, weight: .bold))
-                .tracking(3)
-                .foregroundStyle(Theme.accent)
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 6, height: 6)
+                Text("OVERLAP")
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(3)
+                    .foregroundStyle(Theme.accent)
+            }
 
             Spacer(minLength: 4)
 

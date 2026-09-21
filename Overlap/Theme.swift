@@ -1,5 +1,13 @@
 import SwiftUI
 
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255,
+                  green: Double((hex >> 8) & 0xFF) / 255,
+                  blue: Double(hex & 0xFF) / 255)
+    }
+}
+
 enum Theme {
     /// Deep near-black base.
     static let base = Color(red: 0.043, green: 0.055, blue: 0.078)   // #0B0E14
@@ -17,20 +25,33 @@ enum Theme {
                        startPoint: .top, endPoint: .bottom)
     }
 
-    // Hour cell fills by tier. Work pops as a bright block with dark text;
-    // fringe is a mid whisper; night recedes to near-nothing.
-    static func fill(for tier: TimeMath.Tier) -> Color {
-        switch tier {
-        case .work:  return Color.white.opacity(0.88)
-        case .okay:  return Color.white.opacity(0.12)
-        case .night: return Color.white.opacity(0.04)
+    /// Continuous sky ramp keyed on a place's LOCAL hour — day cells
+    /// merge into one bright block, night into deep indigo.
+    static func skyFill(localHour h: Int) -> Color {
+        switch h {
+        case 0...4:  return Color(hex: 0x12172A)
+        case 5:      return Color(hex: 0x232A4A)
+        case 6:      return Color(hex: 0x5B4A7A)
+        case 7:      return Color(hex: 0xD9A066)
+        case 8:      return Color(hex: 0xEFDDC2)
+        case 9...16: return Color(hex: 0xF6F1E8)
+        case 17:     return Color(hex: 0xF0C27A)
+        case 18:     return Color(hex: 0xD9895C)
+        case 19:     return Color(hex: 0x7A5C8A)
+        case 20:     return Color(hex: 0x3A3B63)
+        default:     return Color(hex: 0x161B30)   // 21–23
         }
     }
-    static func text(for tier: TimeMath.Tier) -> Color {
-        switch tier {
-        case .work:  return base
-        case .okay:  return Color.white.opacity(0.60)
-        case .night: return Color.white.opacity(0.30)
+
+    static func skyText(localHour h: Int) -> Color {
+        switch h {
+        case 5:      return Color.white.opacity(0.5)
+        case 6:      return Color.white.opacity(0.85)
+        case 7:      return Color(hex: 0x1A1410)
+        case 8...18: return base
+        case 19:     return Color.white.opacity(0.9)
+        case 20:     return Color.white.opacity(0.6)
+        default:     return Color.white.opacity(0.35)
         }
     }
 

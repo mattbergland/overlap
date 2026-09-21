@@ -31,23 +31,21 @@ struct PlaceRow: View {
             leftColumn
             HourStrip(place: place,
                       date: date,
-                      now: now,
                       home: home,
                       use24: use24,
-                      isToday: isToday,
                       hoverHour: $hoverHour,
                       selection: $selection,
                       dragAnchor: $dragAnchor)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(place.isHome ? Color.white.opacity(0.06) : (rowHover ? Color.white.opacity(0.05) : Color.white.opacity(0.028)))
+                .fill(Color.white.opacity(rowHover ? 0.07 : 0.035))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(place.isHome ? Theme.accentA.opacity(0.35) : Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(place.isHome ? Theme.accentA.opacity(0.5) : Color.white.opacity(0.05), lineWidth: 1)
         )
         .onHover { rowHover = $0 }
         .contextMenu {
@@ -136,8 +134,8 @@ private struct LocalClock: View {
                     .font(.system(.title3, design: .rounded, weight: .medium))
                     .monospacedDigit()
                 Text(h24 < 12 ? "AM" : "PM")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .opacity(0.5)
             }
         }
     }
@@ -147,27 +145,15 @@ private struct LocalClock: View {
 struct HourStrip: View {
     let place: Place
     let date: Date
-    let now: Date
     let home: TimeZone
     let use24: Bool
-    let isToday: Bool
     @Binding var hoverHour: Int?
     @Binding var selection: ClosedRange<Int>?
     @Binding var dragAnchor: Int?
 
     private var tz: TimeZone { place.timeZone }
 
-    /// Fractional position (0...24) of "now" in home-hour columns.
-    private var nowFraction: Double? {
-        guard isToday else { return nil }
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = home
-        let midnight = cal.startOfDay(for: date)
-        return now.timeIntervalSince(midnight) / 3600
-    }
-
     private var total: CGFloat { ContentView.stripWidth }
-    private var cellW: CGFloat { ContentView.cellWidth }
     private var colPitch: CGFloat { total / 24 }
 
     private func column(atX x: CGFloat) -> Int {
@@ -176,19 +162,23 @@ struct HourStrip: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            HStack(spacing: ContentView.cellSpacing) {
+            // One continuous sky band: base + clipped cell fills
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: 0x12172A))
+            HStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { h in
                     cell(h)
-                        .frame(width: cellW, height: ContentView.cellHeight)
+                        .frame(width: colPitch, height: ContentView.cellHeight)
                 }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // Selection band
             if let sel = selection {
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Theme.accent.opacity(0.28))
-                    .overlay(RoundedRectangle(cornerRadius: 6)
-                        .stroke(Theme.accentB.opacity(0.5), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .stroke(Theme.accentB.opacity(0.6), lineWidth: 1))
                     .frame(width: CGFloat(sel.count) * colPitch,
                            height: ContentView.cellHeight)
                     .offset(x: CGFloat(sel.lowerBound) * colPitch)
@@ -197,19 +187,10 @@ struct HourStrip: View {
 
             // Hover column ring
             if let h = hoverHour {
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.white.opacity(0.45), lineWidth: 1)
-                    .frame(width: cellW, height: ContentView.cellHeight)
-                    .offset(x: CGFloat(h) * colPitch)
-                    .allowsHitTesting(false)
-            }
-
-            // Now indicator
-            if let frac = nowFraction, frac >= 0 && frac <= 24 {
-                Capsule()
-                    .fill(Theme.accentVertical)
-                    .frame(width: 2, height: ContentView.cellHeight)
-                    .offset(x: CGFloat(frac) * colPitch - 1)
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                    .frame(width: colPitch - 1, height: ContentView.cellHeight)
+                    .offset(x: CGFloat(h) * colPitch + 0.5)
                     .allowsHitTesting(false)
             }
         }
@@ -237,47 +218,30 @@ struct HourStrip: View {
         )
     }
 
-    private func tierAt(_ h: Int) -> TimeMath.Tier {
-        let inst = TimeMath.instant(homeHour: h, on: date, home: home)
-        return TimeMath.tier(localHour: TimeMath.localHour(of: inst, in: tz))
-    }
-
     @ViewBuilder
     private func cell(_ h: Int) -> some View {
         let inst = TimeMath.instant(homeHour: h, on: date, home: home)
         let comps = TimeMath.localComponents(of: inst, in: tz)
         let localH = comps.hour ?? 0
-        let tier = TimeMath.tier(localHour: localH)
         let isMidnight = localH == 0
         let hovered = hoverHour == h
-        // Contiguous same-tier cells merge: square off shared edges and
-        // bleed half the inter-cell gap so runs read as one block.
-        let leftJoin = h > 0 && tierAt(h - 1) == tier
-        let rightJoin = h < 23 && tierAt(h + 1) == tier
 
         ZStack {
-            UnevenRoundedRectangle(cornerRadii: .init(
-                    topLeading: leftJoin ? 0 : 5,
-                    bottomLeading: leftJoin ? 0 : 5,
-                    bottomTrailing: rightJoin ? 0 : 5,
-                    topTrailing: rightJoin ? 0 : 5))
-                .fill(Theme.fill(for: tier).opacity(hovered ? 1 : 0.95))
-                .padding(.leading, leftJoin ? -ContentView.cellSpacing / 2 : 0)
-                .padding(.trailing, rightJoin ? -ContentView.cellSpacing / 2 : 0)
-            if isMidnight {
+            Theme.skyFill(localHour: localH)
+            // hairline divider between cells; stronger at local midnight
+            if h > 0 {
                 HStack(spacing: 0) {
                     Rectangle()
-                        .fill(Color.white.opacity(0.5))
-                        .frame(width: 1.5)
+                        .fill(Color.white.opacity(isMidnight ? 0.35 : 0.06))
+                        .frame(width: 1)
                     Spacer()
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
             Text(cellLabel(h: localH, comps: comps, hovered: hovered))
                 .font(.system(size: isMidnight ? 8.5 : 9.5,
                               weight: hovered || isMidnight ? .bold : .medium))
                 .monospacedDigit()
-                .foregroundStyle(Theme.text(for: tier).opacity(hovered ? 1 : 0.9))
+                .foregroundStyle(Theme.skyText(localHour: localH).opacity(hovered ? 1 : 0.9))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
@@ -333,13 +297,8 @@ struct BestWindowsBar: View {
         let none = w.work.isEmpty && w.okay.isEmpty
         let effort = none ? bestEffort : []
         HStack(spacing: ContentView.columnGap) {
-            Group {
-                if none {
-                    Text("Best windows · none")
-                } else {
-                    Text("Best windows · \(w.work.count + w.okay.count)")
-                }
-            }
+            Label("Shared hours · \(w.work.count + w.okay.count)",
+                  systemImage: "person.2.fill")
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.secondary)
             .lineLimit(1)
@@ -349,7 +308,11 @@ struct BestWindowsBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.06))
                 ForEach(effort, id: \.self) { r in
-                    segment(r, unit: unit, color: Theme.okayAmber.opacity(0.5))
+                    Capsule()
+                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                        .foregroundStyle(Theme.okayAmber.opacity(0.7))
+                        .frame(width: CGFloat(r.count) * unit)
+                        .offset(x: CGFloat(r.lowerBound) * unit)
                 }
                 ForEach(w.okay, id: \.self) { r in
                     segment(r, unit: unit, color: Theme.okayAmber)
@@ -358,10 +321,11 @@ struct BestWindowsBar: View {
                     segment(r, unit: unit, color: Theme.goodGreen)
                 }
                 if none {
-                    Text("No shared working hours — closest: \(effort.map(fmt).joined(separator: ", "))")
+                    Text("No shared 9–6 · closest \(effort.map(fmt).joined(separator: ", "))")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.trailing, 6)
                 }
             }
             .frame(width: ContentView.stripWidth, height: 12)
