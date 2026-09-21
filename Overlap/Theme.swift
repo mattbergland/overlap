@@ -17,19 +17,19 @@ enum Theme {
                        startPoint: .top, endPoint: .bottom)
     }
 
-    // Hour cell fills by tier (dark-first; light mode handled via opacity
-    // on white/black so both work reasonably).
+    // Hour cell fills by tier. Work pops as a bright block with dark text;
+    // fringe is a mid whisper; night recedes to near-nothing.
     static func fill(for tier: TimeMath.Tier) -> Color {
         switch tier {
-        case .work:  return Color.white.opacity(0.20)
-        case .okay:  return Color.white.opacity(0.085)
-        case .night: return Color.white.opacity(0.030)
+        case .work:  return Color.white.opacity(0.88)
+        case .okay:  return Color.white.opacity(0.12)
+        case .night: return Color.white.opacity(0.04)
         }
     }
     static func text(for tier: TimeMath.Tier) -> Color {
         switch tier {
-        case .work:  return Color.white.opacity(0.95)
-        case .okay:  return Color.white.opacity(0.62)
+        case .work:  return base
+        case .okay:  return Color.white.opacity(0.60)
         case .night: return Color.white.opacity(0.30)
         }
     }

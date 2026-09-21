@@ -9,9 +9,26 @@ struct Place: Identifiable, Codable, Hashable {
 
     var timeZone: TimeZone { TimeZone(identifier: timeZoneID) ?? .current }
 
-    /// e.g. "PDT"
+    /// e.g. "PDT" — only if the abbreviation is alphabetic (else just "GMT+2").
     func abbreviation(at date: Date = Date()) -> String {
-        timeZone.abbreviation(for: date) ?? ""
+        let abbr = timeZone.abbreviation(for: date) ?? ""
+        return abbr.rangeOfCharacter(from: .letters.inverted) == nil && !abbr.isEmpty ? abbr : ""
+    }
+
+    /// Sub-label for a row: "PDT · UTC−7", or just "UTC−7" if the tz has
+    /// no alphabetic abbreviation at `date`.
+    func offsetLabel(at date: Date = Date()) -> String {
+        let abbr = abbreviation(at: date)
+        return abbr.isEmpty ? utcOffset(at: date) : "\(abbr) · \(utcOffset(at: date))"
+    }
+
+    /// Signed whole-hour difference from `home` at `date`, e.g. "+3h", "−8h",
+    /// or nil if zero / not whole hours.
+    func hourOffset(from home: TimeZone, at date: Date = Date()) -> String? {
+        let diff = timeZone.secondsFromGMT(for: date) - home.secondsFromGMT(for: date)
+        guard diff != 0, diff % 3600 == 0 else { return nil }
+        let h = diff / 3600
+        return h > 0 ? "+\(h)h" : "−\(abs(h))h"
     }
 
     /// e.g. "UTC−7"

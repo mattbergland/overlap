@@ -93,11 +93,22 @@ struct PlaceRow: View {
                         .foregroundStyle(.secondary)
                     }
                 }
-                Text("\(place.abbreviation(at: date)) · \(place.utcOffset(at: date))")
-                    .font(.system(size: 10))
-                    .foregroundColor(.gray)
+                HStack(spacing: 4) {
+                    Text(place.offsetLabel(at: date))
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    if !place.isHome, let diff = place.hourOffset(from: home, at: date) {
+                        Text(diff)
+                            .font(.system(size: 8, weight: .bold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1.5)
+                            .background(Color.white.opacity(0.08), in: Capsule())
+                    }
+                }
             }
-            .frame(width: 96, alignment: .leading)
+            .frame(width: 140, alignment: .leading)
             LocalClock(place: place, use24: use24, now: now)
         }
         .frame(width: ContentView.leftColumn, alignment: .leading)
@@ -116,16 +127,16 @@ private struct LocalClock: View {
         let m = comps.minute ?? 0
         if use24 {
             Text(String(format: "%d:%02d", h24, m))
-                .font(.system(.title2, design: .rounded, weight: .medium))
+                .font(.system(.title3, design: .rounded, weight: .medium))
                 .monospacedDigit()
         } else {
             let h12 = h24 % 12 == 0 ? 12 : h24 % 12
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(String(format: "%d:%02d", h12, m))
-                    .font(.system(.title2, design: .rounded, weight: .medium))
+                    .font(.system(.title3, design: .rounded, weight: .medium))
                     .monospacedDigit()
                 Text(h24 < 12 ? "AM" : "PM")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -226,6 +237,11 @@ struct HourStrip: View {
         )
     }
 
+    private func tierAt(_ h: Int) -> TimeMath.Tier {
+        let inst = TimeMath.instant(homeHour: h, on: date, home: home)
+        return TimeMath.tier(localHour: TimeMath.localHour(of: inst, in: tz))
+    }
+
     @ViewBuilder
     private func cell(_ h: Int) -> some View {
         let inst = TimeMath.instant(homeHour: h, on: date, home: home)
@@ -234,10 +250,20 @@ struct HourStrip: View {
         let tier = TimeMath.tier(localHour: localH)
         let isMidnight = localH == 0
         let hovered = hoverHour == h
+        // Contiguous same-tier cells merge: square off shared edges and
+        // bleed half the inter-cell gap so runs read as one block.
+        let leftJoin = h > 0 && tierAt(h - 1) == tier
+        let rightJoin = h < 23 && tierAt(h + 1) == tier
 
         ZStack {
-            RoundedRectangle(cornerRadius: 5)
+            UnevenRoundedRectangle(cornerRadii: .init(
+                    topLeading: leftJoin ? 0 : 5,
+                    bottomLeading: leftJoin ? 0 : 5,
+                    bottomTrailing: rightJoin ? 0 : 5,
+                    topTrailing: rightJoin ? 0 : 5))
                 .fill(Theme.fill(for: tier).opacity(hovered ? 1 : 0.95))
+                .padding(.leading, leftJoin ? -ContentView.cellSpacing / 2 : 0)
+                .padding(.trailing, rightJoin ? -ContentView.cellSpacing / 2 : 0)
             if isMidnight {
                 HStack(spacing: 0) {
                     Rectangle()
@@ -255,7 +281,6 @@ struct HourStrip: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
-        .help(timeTooltip(inst))
     }
 
     private func cellLabel(h: Int, comps: DateComponents, hovered: Bool) -> String {
@@ -275,12 +300,6 @@ struct HourStrip: View {
         return "\(h - 12)"
     }
 
-    private func timeTooltip(_ inst: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = use24 ? "EEE HH:mm" : "EEE h:mm a"
-        f.timeZone = tz
-        return f.string(from: inst)
-    }
 }
 
 /// Thin track above the rows showing good-window segments.
@@ -290,16 +309,33 @@ struct BestWindowsBar: View {
     let home: TimeZone
     @Binding var selection: ClosedRange<Int>?
 
+    @AppStorage("use24Hour") private var use24 = false
+
     private var windows: (work: [ClosedRange<Int>], okay: [ClosedRange<Int>]) {
         TimeMath.goodWindows(places: store.places, on: date, home: home)
     }
 
+    private var bestEffort: [ClosedRange<Int>] {
+        TimeMath.bestEffortWindows(places: store.places, on: date, home: home)
+    }
+
+    private func fmt(_ r: ClosedRange<Int>) -> String {
+        func h(_ v: Int) -> String {
+            let v = v % 24
+            if use24 { return "\(v)" }
+            return "\(v % 12 == 0 ? 12 : v % 12)\(v < 12 ? "a" : "p")"
+        }
+        return "\(h(r.lowerBound))–\(h(r.upperBound + 1))"
+    }
+
     var body: some View {
         let w = windows
+        let none = w.work.isEmpty && w.okay.isEmpty
+        let effort = none ? bestEffort : []
         HStack(spacing: ContentView.columnGap) {
             Group {
-                if w.work.isEmpty && w.okay.isEmpty {
-                    Text("No overlap — try fewer cities")
+                if none {
+                    Text("Best windows · none")
                 } else {
                     Text("Best windows · \(w.work.count + w.okay.count)")
                 }
@@ -312,14 +348,23 @@ struct BestWindowsBar: View {
             let unit = ContentView.stripWidth / 24
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.06))
+                ForEach(effort, id: \.self) { r in
+                    segment(r, unit: unit, color: Theme.okayAmber.opacity(0.5))
+                }
                 ForEach(w.okay, id: \.self) { r in
                     segment(r, unit: unit, color: Theme.okayAmber)
                 }
                 ForEach(w.work, id: \.self) { r in
                     segment(r, unit: unit, color: Theme.goodGreen)
                 }
+                if none {
+                    Text("No shared working hours — closest: \(effort.map(fmt).joined(separator: ", "))")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                }
             }
-            .frame(width: ContentView.stripWidth, height: 8)
+            .frame(width: ContentView.stripWidth, height: 12)
         }
         .padding(.horizontal, 10)
         .frame(height: 14)

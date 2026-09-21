@@ -72,8 +72,12 @@ struct ContentView: View {
         .onReceive(timer) { now = $0 }
         .fontDesign(.rounded)
         .frame(width: Self.popoverWidth)
-        .background(.ultraThinMaterial)
-        .background(Theme.base.opacity(standalone ? 0.98 : 0.86))
+        .background(
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Theme.base.opacity(standalone ? 0.98 : 0.92)
+            }
+        )
         .preferredColorScheme(.dark)
         .environment(\.colorScheme, .dark)
         .animation(.snappy, value: selection != nil)
@@ -85,15 +89,15 @@ struct ContentView: View {
 
     // MARK: - Layout constants
 
-    static let leftColumn: CGFloat = 190
+    static let leftColumn: CGFloat = 230
     static let columnGap: CGFloat = 14
     static let cellHeight: CGFloat = 30
-    static let cellSpacing: CGFloat = 2
-    static let popoverWidth: CGFloat = 800
+    static let cellSpacing: CGFloat = 3
+    static let popoverWidth: CGFloat = 820
     /// Width of the 24-cell strip: popover minus root padding (16×2),
     /// row horizontal padding (10×2), left column and the gap.
     static let stripWidth: CGFloat = popoverWidth - 32 - 20 - leftColumn - columnGap
-    static var cellWidth: CGFloat { (stripWidth - 23 * cellSpacing) / 24 }
+    static var cellWidth: CGFloat { stripWidth / 24 - cellSpacing }
 
     // MARK: - Header
 
@@ -122,7 +126,7 @@ struct ContentView: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 11, weight: .semibold))
                 }
-                .keyboardShortcut(.leftArrow, modifiers: [])
+                .keyboardShortcut(.leftArrow, modifiers: .command)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
 
@@ -134,7 +138,7 @@ struct ContentView: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
                 }
-                .keyboardShortcut(.rightArrow, modifiers: [])
+                .keyboardShortcut(.rightArrow, modifiers: .command)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
 
@@ -147,6 +151,11 @@ struct ContentView: View {
                     .foregroundStyle(Theme.accentB)
                     .transition(.opacity)
                 }
+                // ⌘T — jump back to today (hidden, always active)
+                Button("") { withAnimation(.snappy) { selectedDate = Date() } }
+                    .keyboardShortcut("t", modifiers: .command)
+                    .frame(width: 0, height: 0)
+                    .opacity(0)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)

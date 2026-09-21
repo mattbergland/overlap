@@ -98,6 +98,37 @@ enum TimeMath {
         return result
     }
 
+    /// Fallback when no shared work/okay window exists: score each home
+    /// hour by how many places are working (×2) or in fringe hours (×1),
+    /// then return the contiguous runs of max-scoring columns (≤ 2 runs).
+    static func bestEffortWindows(places: [Place], on date: Date, home: TimeZone) -> [ClosedRange<Int>] {
+        guard !places.isEmpty else { return [] }
+        var scores = [Int](repeating: 0, count: 24)
+        for h in 0..<24 {
+            let inst = instant(homeHour: h, on: date, home: home)
+            for place in places {
+                switch tier(localHour: localHour(of: inst, in: place.timeZone)) {
+                case .work: scores[h] += 2
+                case .okay: scores[h] += 1
+                case .night: break
+                }
+            }
+        }
+        guard let maxScore = scores.max(), maxScore > 0 else { return [] }
+        let maxCols = scores.map { $0 == maxScore }
+        var runs: [ClosedRange<Int>] = []
+        var start: Int? = nil
+        for i in 0..<24 {
+            if maxCols[i] {
+                if start == nil { start = i }
+            } else if let s = start {
+                runs.append(s...(i - 1)); start = nil
+            }
+        }
+        if let s = start { runs.append(s...23) }
+        return Array(runs.prefix(2))
+    }
+
     /// Best (worst-tier) for a selected home-hour range across places —
     /// used to tint summary chips per city instead.
     static func tier(for place: Place, homeHour h: Int, on date: Date, home: TimeZone) -> Tier {

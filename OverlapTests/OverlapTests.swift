@@ -50,6 +50,24 @@ final class OverlapTests: XCTestCase {
         XCTAssertEqual(windows.okay, [7...8, 10...12])
     }
 
+    func testBestEffortWindows() {
+        let la = tz("America/Los_Angeles")
+        let places = [
+            Place(name: "LA", timeZoneID: "America/Los_Angeles", isHome: true),
+            Place(name: "NY", timeZoneID: "America/New_York"),
+            Place(name: "London", timeZoneID: "Europe/London"),
+            Place(name: "Tokyo", timeZoneID: "Asia/Tokyo"),
+        ]
+        let day = date("2026-09-21", in: la)
+
+        // Score = 2 per place in work tier, 1 per place in okay tier.
+        // LA h=9: LA 9(w) NY 12(w) London 17(w) Tokyo 25→1(night) → 6.
+        // Tokyo is at night for every reasonable LA business hour, so 6
+        // is the max and h=9 is the only column reaching it.
+        let effort = TimeMath.bestEffortWindows(places: places, on: day, home: la)
+        XCTAssertEqual(effort, [9...9])
+    }
+
     // MARK: - DST edge
 
     func testDSTTransition_LondonMar29() {
