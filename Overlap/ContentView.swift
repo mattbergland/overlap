@@ -157,6 +157,7 @@ struct ContentView: View {
                         .padding(.horizontal, 5)
                         .frame(height: 14)
                         .background(Theme.accentB, in: Capsule())
+                        .fixedSize()
                 }
                 .offset(x: x)
                 .allowsHitTesting(false)
