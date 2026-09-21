@@ -92,8 +92,8 @@ struct SummaryBar: View {
                         .font(.system(size: 11, weight: .semibold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
-                        .background(Theme.tierTint(tier).opacity(0.22), in: Capsule())
-                        .overlay(Capsule().stroke(Theme.tierTint(tier).opacity(0.55), lineWidth: 1))
+                        .background(Theme.tierTint(tier).opacity(0.15), in: Capsule())
+                        .overlay(Capsule().stroke(Theme.tierTint(tier), lineWidth: 1))
                         .lineLimit(1)
                         .fixedSize()
                 }

@@ -34,28 +34,36 @@ struct ContentView: View {
                 Divider().overlay(Color.white.opacity(0.08))
                     .padding(.vertical, 10)
 
-                BestWindowsBar(store: store,
-                               date: selectedDate,
-                               home: home,
-                               selection: $selection)
-                    .padding(.bottom, 8)
+                VStack(alignment: .leading, spacing: 0) {
+                    // 16pt lane above the track: holds the now-time pill
+                    Color.clear.frame(height: 16)
+                        .overlay(alignment: .topLeading) { nowPill }
 
-                // Rows
-                VStack(spacing: 6) {
-                    ForEach(store.places) { place in
-                        PlaceRow(place: place,
-                                 date: selectedDate,
-                                 now: now,
-                                 home: home,
-                                 use24: use24,
-                                 isToday: isToday,
-                                 hoverHour: $hoverHour,
-                                 selection: $selection)
-                        .transition(.asymmetric(insertion: .push(from: .top).combined(with: .opacity),
-                                                removal: .opacity))
+                    BestWindowsBar(store: store,
+                                   date: selectedDate,
+                                   home: home,
+                                   selection: $selection)
+                        .padding(.bottom, 8)
+
+                    // Rows
+                    VStack(spacing: 6) {
+                        ForEach(store.places) { place in
+                            PlaceRow(place: place,
+                                     date: selectedDate,
+                                     now: now,
+                                     home: home,
+                                     use24: use24,
+                                     isToday: isToday,
+                                     hoverHour: $hoverHour,
+                                     selection: $selection)
+                            .transition(.asymmetric(insertion: .push(from: .top).combined(with: .opacity),
+                                                    removal: .opacity))
+                        }
                     }
+                    .overlay(alignment: .topLeading) { selectionPill }
+                    .animation(.snappy, value: store.places)
                 }
-                .animation(.snappy, value: store.places)
+                .overlay(alignment: .topLeading) { nowLine }
 
                 if let selection {
                     SummaryBar(date: selectedDate,
@@ -80,10 +88,113 @@ struct ContentView: View {
         )
         .preferredColorScheme(.dark)
         .environment(\.colorScheme, .dark)
+        .overlay {
+            // inner stroke + top sheen
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.white.opacity(0.06), .clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 80)
+                Spacer()
+            }
+            .allowsHitTesting(false)
+        }
         .animation(.snappy, value: selection != nil)
         .animation(.snappy, value: hoverHour)
         .onExitCommand {
             if !query.isEmpty { query = "" } else { selection = nil }
+        }
+    }
+
+    /// X offset of the strip inside the rows container (row pad + left col + gap).
+    private var stripX: CGFloat { 10 + Self.leftColumn + Self.columnGap }
+    private var colPitch: CGFloat { Self.stripWidth / 24 }
+
+    private var nowFraction: Double? {
+        guard isToday else { return nil }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = home
+        let f = now.timeIntervalSince(cal.startOfDay(for: selectedDate)) / 3600
+        return (f >= 0 && f <= 24) ? f : nil
+    }
+
+    private var nowTimeLabel: String {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = home
+        let h = cal.component(.hour, from: now)
+        let m = cal.component(.minute, from: now)
+        if use24 { return String(format: "%d:%02d", h, m) }
+        return String(format: "%d:%02d", (h % 12 == 0) ? 12 : h % 12, m)
+    }
+
+    private func homeRangeLabel(_ sel: ClosedRange<Int>) -> String {
+        let f: (Int) -> String = { h in
+            let hh = h % 24
+            if use24 { return "\(hh):00" }
+            return "\((hh % 12 == 0) ? 12 : hh % 12):00"
+        }
+        let end = sel.upperBound + 1
+        let suffix = use24 ? "" : " \(end % 24 < 12 ? "AM" : "PM")"
+        return "\(f(sel.lowerBound)) – \(f(end))\(suffix)"
+    }
+
+    private var nowX: CGFloat? {
+        nowFraction.map { stripX + CGFloat($0) * colPitch }
+    }
+
+    /// Time pill in the 16pt lane, centered on the now-line's x.
+    @ViewBuilder
+    private var nowPill: some View {
+        if let x = nowX {
+            Color.clear
+                .frame(width: 0, height: 16)
+                .overlay {
+                    Text(nowTimeLabel)
+                        .font(.system(size: 9, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.base)
+                        .padding(.horizontal, 5)
+                        .frame(height: 14)
+                        .background(Theme.accentB, in: Capsule())
+                        .fixedSize()
+                }
+                .offset(x: x)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// 1.5pt now-line from the pill's bottom (lane end) to the last row's
+    /// bottom — drawn over lane + track + rows so it sits above the band.
+    @ViewBuilder
+    private var nowLine: some View {
+        if let x = nowX {
+            Capsule()
+                .fill(Theme.accentVertical)
+                .frame(width: 1.5)
+                .shadow(color: Theme.accentB.opacity(0.45), radius: 3)
+                .padding(.top, 16)
+                .offset(x: x - 0.75)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// Home-range pill centered on the selection band, half-overlapping
+    /// its top edge.
+    @ViewBuilder
+    private var selectionPill: some View {
+        if let sel = selection {
+            Text(homeRangeLabel(sel))
+                .font(.system(size: 8.5, weight: .semibold))
+                .monospacedDigit()
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.12), in: Capsule())
+                .overlay(Capsule().stroke(Theme.accentB.opacity(0.6), lineWidth: 0.5))
+                .fixedSize()
+                .frame(width: CGFloat(sel.count) * colPitch)
+                .offset(x: stripX + CGFloat(sel.lowerBound) * colPitch, y: -8)
+                .allowsHitTesting(false)
         }
     }
 
@@ -92,12 +203,10 @@ struct ContentView: View {
     static let leftColumn: CGFloat = 230
     static let columnGap: CGFloat = 14
     static let cellHeight: CGFloat = 30
-    static let cellSpacing: CGFloat = 3
     static let popoverWidth: CGFloat = 820
     /// Width of the 24-cell strip: popover minus root padding (16×2),
     /// row horizontal padding (10×2), left column and the gap.
     static let stripWidth: CGFloat = popoverWidth - 32 - 20 - leftColumn - columnGap
-    static var cellWidth: CGFloat { stripWidth / 24 - cellSpacing }
 
     // MARK: - Header
 
@@ -113,10 +222,15 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("OVERLAP")
-                .font(.system(size: 12, weight: .bold))
-                .tracking(3)
-                .foregroundStyle(Theme.accent)
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 6, height: 6)
+                Text("OVERLAP")
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(3)
+                    .foregroundStyle(Theme.accent)
+            }
 
             Spacer(minLength: 4)
 
