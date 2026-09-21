@@ -1,0 +1,107 @@
+import XCTest
+
+final class OverlapTests: XCTestCase {
+
+    private func tz(_ id: String) -> TimeZone { TimeZone(identifier: id)! }
+
+    private func date(_ s: String, in tz: TimeZone) -> Date {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = tz
+        f.calendar = Calendar(identifier: .gregorian)
+        return f.date(from: s)!
+    }
+
+    // MARK: - Local hour conversion
+
+    func testLocalHourAndDayOffset() {
+        let la = tz("America/Los_Angeles")
+        let ny = tz("America/New_York")
+        let tokyo = tz("Asia/Tokyo")
+        let day = date("2026-09-21", in: la)
+
+        let nineAM_LA = TimeMath.instant(homeHour: 9, on: day, home: la)
+        XCTAssertEqual(TimeMath.localHour(of: nineAM_LA, in: la), 9)
+        XCTAssertEqual(TimeMath.localHour(of: nineAM_LA, in: ny), 12)
+        XCTAssertEqual(TimeMath.localHour(of: nineAM_LA, in: tokyo), 1)
+
+        // Tokyo is already on Sep 22.
+        XCTAssertEqual(TimeMath.dayOffset(of: nineAM_LA, target: tokyo, home: la), 1)
+        XCTAssertEqual(TimeMath.dayOffset(of: nineAM_LA, target: ny, home: la), 0)
+    }
+
+    // MARK: - Good windows
+
+    func testGoodWindows_LaNyLondon() {
+        let la = tz("America/Los_Angeles")
+        let places = [
+            Place(name: "LA", timeZoneID: "America/Los_Angeles", isHome: true),
+            Place(name: "NY", timeZoneID: "America/New_York"),
+            Place(name: "London", timeZoneID: "Europe/London"),
+        ]
+        let day = date("2026-09-21", in: la)
+
+        // LA h -> NY h+3 -> London h+8 (PDT→BST = +8 on that date).
+        // work = all in [9,18): h>=9 and h+8<18 -> h=9 only.
+        let windows = TimeMath.goodWindows(places: places, on: day, home: la)
+        XCTAssertEqual(windows.work, [9...9])
+        // okay tier (== .okay exactly): h=7,8 (LA fringe) and h=10,11,12
+        // (London 18,19,20 → fringe).
+        XCTAssertEqual(windows.okay, [7...8, 10...12])
+    }
+
+    // MARK: - DST edge
+
+    func testDSTTransition_LondonMar29() {
+        // 2026-03-29: UK clocks jump 01:00→02:00 BST. LA is already on PDT.
+        let la = tz("America/Los_Angeles")
+        let london = tz("Europe/London")
+        let day = date("2026-03-29", in: la)
+
+        var hours: [Int] = []
+        for h in 0..<24 {
+            let inst = TimeMath.instant(homeHour: h, on: day, home: la)
+            hours.append(TimeMath.localHour(of: inst, in: london))
+        }
+        XCTAssertEqual(hours.count, 24)
+        // London local hour should progress +1 each column (mod 24);
+        // BST transition happened before LA's midnight, so no gaps/dups.
+        for i in 1..<24 {
+            XCTAssertEqual((hours[i] - hours[i - 1] + 24) % 24, 1,
+                           "hour jump at column \(i)")
+        }
+
+        // And a date where LA itself transitions: 2026-03-08 PDT start.
+        // Local hour 2 doesn't exist — the sequence skips it (0,1,3,4,…)
+        // and the last column lands on next-day 0 because the day is 23h.
+        let laSpring = date("2026-03-08", in: la)
+        var laHours: [Int] = []
+        for h in 0..<24 {
+            let inst = TimeMath.instant(homeHour: h, on: laSpring, home: la)
+            laHours.append(TimeMath.localHour(of: inst, in: la))
+        }
+        XCTAssertEqual(laHours.count, 24)
+        for h in laHours { XCTAssertTrue((0..<24).contains(h)) }
+        for i in 1..<24 {
+            let diff = (laHours[i] - laHours[i - 1] + 24) % 24
+            XCTAssertTrue(diff == 1 || diff == 2,
+                          "unexpected jump \(diff) at column \(i)")
+        }
+        XCTAssertTrue(laHours.contains(3) && !laHours.contains(2))
+    }
+
+    // MARK: - CityCatalog search
+
+    func testCatalogSearch() {
+        let catalog = CityCatalog()
+
+        let nyc = catalog.search("nyc")
+        XCTAssertEqual(nyc.first?.identifier, "America/New_York")
+
+        let lon = catalog.search("lon")
+        XCTAssertEqual(lon.first?.name, "London")
+
+        let sf = catalog.search("sf")
+        XCTAssertEqual(sf.first?.identifier, "America/Los_Angeles")
+    }
+}

@@ -1,0 +1,59 @@
+name: Overlap
+options:
+  bundleIdPrefix: land.mattberg
+  deploymentTarget:
+    macOS: "14.0"
+targets:
+  Overlap:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - Overlap
+    info:
+      path: Overlap/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleName: Overlap
+        CFBundleDisplayName: Overlap
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSHumanReadableCopyright: "© Matt Bergland"
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap
+        PRODUCT_NAME: Overlap
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+  OverlapTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - OverlapTests
+      - Overlap/Place.swift
+      - Overlap/CityCatalog.swift
+      - Overlap/TimeMath.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+schemes:
+  Overlap:
+    build:
+      targets:
+        Overlap: all
+        OverlapTests:
+          - test
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - OverlapTests
