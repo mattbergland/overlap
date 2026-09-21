@@ -160,11 +160,20 @@ struct HourStrip: View {
         max(0, min(23, Int(x / colPitch)))
     }
 
+    private func localHour(_ h: Int) -> Int {
+        let inst = TimeMath.instant(homeHour: h, on: date, home: home)
+        return TimeMath.localComponents(of: inst, in: tz).hour ?? 0
+    }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // One continuous sky band: base + clipped cell fills
+            // One continuous sky gradient, sampled at each cell's center
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(hex: 0x12172A))
+                .fill(
+                    LinearGradient(stops: (0..<24).map { h in
+                        Gradient.Stop(color: Theme.skyFill(localHour: localHour(h)),
+                                      location: (Double(h) + 0.5) / 24)
+                    }, startPoint: .leading, endPoint: .trailing))
             HStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { h in
                     cell(h)
@@ -227,12 +236,11 @@ struct HourStrip: View {
         let hovered = hoverHour == h
 
         ZStack {
-            Theme.skyFill(localHour: localH)
             // hairline divider between cells; stronger at local midnight
             if h > 0 {
                 HStack(spacing: 0) {
                     Rectangle()
-                        .fill(Color.white.opacity(isMidnight ? 0.35 : 0.06))
+                        .fill(Color.white.opacity(isMidnight ? 0.35 : 0.04))
                         .frame(width: 1)
                     Spacer()
                 }

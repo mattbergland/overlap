@@ -31,13 +31,13 @@ enum Theme {
         switch h {
         case 0...4:  return Color(hex: 0x12172A)
         case 5:      return Color(hex: 0x232A4A)
-        case 6:      return Color(hex: 0x5B4A7A)
-        case 7:      return Color(hex: 0xD9A066)
+        case 6:      return Color(hex: 0x3E3D63)
+        case 7:      return Color(hex: 0xC9A27E)
         case 8:      return Color(hex: 0xEFDDC2)
         case 9...16: return Color(hex: 0xF6F1E8)
-        case 17:     return Color(hex: 0xF0C27A)
-        case 18:     return Color(hex: 0xD9895C)
-        case 19:     return Color(hex: 0x7A5C8A)
+        case 17:     return Color(hex: 0xE8CFA0)
+        case 18:     return Color(hex: 0xB98570)
+        case 19:     return Color(hex: 0x5E5478)
         case 20:     return Color(hex: 0x3A3B63)
         default:     return Color(hex: 0x161B30)   // 21–23
         }

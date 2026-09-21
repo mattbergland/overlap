@@ -34,31 +34,36 @@ struct ContentView: View {
                 Divider().overlay(Color.white.opacity(0.08))
                     .padding(.vertical, 10)
 
-                BestWindowsBar(store: store,
-                               date: selectedDate,
-                               home: home,
-                               selection: $selection)
-                    .padding(.bottom, 8)
+                VStack(alignment: .leading, spacing: 0) {
+                    // 16pt lane above the track: holds the now-time pill
+                    Color.clear.frame(height: 16)
+                        .overlay(alignment: .topLeading) { nowPill }
 
-                // Rows
-                VStack(spacing: 6) {
-                    ForEach(store.places) { place in
-                        PlaceRow(place: place,
-                                 date: selectedDate,
-                                 now: now,
-                                 home: home,
-                                 use24: use24,
-                                 isToday: isToday,
-                                 hoverHour: $hoverHour,
-                                 selection: $selection)
-                        .transition(.asymmetric(insertion: .push(from: .top).combined(with: .opacity),
-                                                removal: .opacity))
+                    BestWindowsBar(store: store,
+                                   date: selectedDate,
+                                   home: home,
+                                   selection: $selection)
+                        .padding(.bottom, 8)
+
+                    // Rows
+                    VStack(spacing: 6) {
+                        ForEach(store.places) { place in
+                            PlaceRow(place: place,
+                                     date: selectedDate,
+                                     now: now,
+                                     home: home,
+                                     use24: use24,
+                                     isToday: isToday,
+                                     hoverHour: $hoverHour,
+                                     selection: $selection)
+                            .transition(.asymmetric(insertion: .push(from: .top).combined(with: .opacity),
+                                                    removal: .opacity))
+                        }
                     }
+                    .overlay(alignment: .topLeading) { selectionPill }
+                    .animation(.snappy, value: store.places)
                 }
-                .overlay(alignment: .topLeading) {
-                    stripOverlay
-                }
-                .animation(.snappy, value: store.places)
+                .overlay(alignment: .topLeading) { nowLine }
 
                 if let selection {
                     SummaryBar(date: selectedDate,
@@ -134,28 +139,49 @@ struct ContentView: View {
         return "\(f(sel.lowerBound)) – \(f(end))\(suffix)"
     }
 
-    /// Now-line spanning all rows + time pill, and selection range pill.
+    private var nowX: CGFloat? {
+        nowFraction.map { stripX + CGFloat($0) * colPitch }
+    }
+
+    /// Time pill in the 16pt lane, centered on the now-line's x.
     @ViewBuilder
-    private var stripOverlay: some View {
-        if let frac = nowFraction {
-            Capsule()
-                .fill(Theme.accentVertical)
-                .frame(width: 2)
-                .shadow(color: Theme.accentB.opacity(0.6), radius: 6)
-                .padding(.vertical, -10)
-                .overlay(alignment: .top) {
+    private var nowPill: some View {
+        if let x = nowX {
+            Color.clear
+                .frame(width: 0, height: 16)
+                .overlay {
                     Text(nowTimeLabel)
                         .font(.system(size: 9, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.base)
                         .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(Theme.accent, in: Capsule())
-                        .offset(y: -22)
+                        .frame(height: 14)
+                        .background(Theme.accentB, in: Capsule())
                 }
-                .offset(x: stripX + CGFloat(frac) * colPitch - 1)
+                .offset(x: x)
                 .allowsHitTesting(false)
         }
+    }
+
+    /// 1.5pt now-line from the pill's bottom (lane end) to the last row's
+    /// bottom — drawn over lane + track + rows so it sits above the band.
+    @ViewBuilder
+    private var nowLine: some View {
+        if let x = nowX {
+            Capsule()
+                .fill(Theme.accentVertical)
+                .frame(width: 1.5)
+                .shadow(color: Theme.accentB.opacity(0.45), radius: 3)
+                .padding(.top, 16)
+                .offset(x: x - 0.75)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// Home-range pill centered on the selection band, half-overlapping
+    /// its top edge.
+    @ViewBuilder
+    private var selectionPill: some View {
         if let sel = selection {
             Text(homeRangeLabel(sel))
                 .font(.system(size: 8.5, weight: .semibold))
@@ -165,6 +191,7 @@ struct ContentView: View {
                 .background(Color.white.opacity(0.12), in: Capsule())
                 .overlay(Capsule().stroke(Theme.accentB.opacity(0.6), lineWidth: 0.5))
                 .fixedSize()
+                .frame(width: CGFloat(sel.count) * colPitch)
                 .offset(x: stripX + CGFloat(sel.lowerBound) * colPitch, y: -8)
                 .allowsHitTesting(false)
         }
@@ -175,12 +202,10 @@ struct ContentView: View {
     static let leftColumn: CGFloat = 230
     static let columnGap: CGFloat = 14
     static let cellHeight: CGFloat = 30
-    static let cellSpacing: CGFloat = 3
     static let popoverWidth: CGFloat = 820
     /// Width of the 24-cell strip: popover minus root padding (16×2),
     /// row horizontal padding (10×2), left column and the gap.
     static let stripWidth: CGFloat = popoverWidth - 32 - 20 - leftColumn - columnGap
-    static var cellWidth: CGFloat { stripWidth / 24 - cellSpacing }
 
     // MARK: - Header
 
