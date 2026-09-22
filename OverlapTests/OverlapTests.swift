@@ -107,6 +107,68 @@ final class OverlapTests: XCTestCase {
             "**Mon Sep 21**\n\n| City | Local time |\n|---|---|\n| LA | 9:00 – 11:00 AM |\n| NY | 12:00 – 2:00 PM |")
     }
 
+    // MARK: - CommandParser
+
+    func testCommandParser() {
+        let la = tz("America/Los_Angeles")
+        let catalog = CityCatalog()
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = la
+        let ref = cal.date(from: DateComponents(year: 2026, month: 9, day: 21,
+                                                hour: 9, minute: 0))!
+
+        // "3pm Tokyo tomorrow" → jump 15:00 in Tokyo, +1 day.
+        guard case .jump(let h, let m, let city, let off, _, _) =
+                CommandParser.parse("3pm tokyo tomorrow", catalog: catalog,
+                                    referenceDate: ref, homeTZ: la)?.intent else {
+            return XCTFail("expected jump")
+        }
+        XCTAssertEqual(h, 15)
+        XCTAssertEqual(m, 0)
+        XCTAssertEqual(city?.identifier, "Asia/Tokyo")
+        XCTAssertEqual(off, 1)
+
+        // "london, sydney" → addPlaces 2.
+        guard case .addPlaces(let ps) =
+                CommandParser.parse("london, sydney", catalog: catalog,
+                                    referenceDate: ref, homeTZ: la)?.intent else {
+            return XCTFail("expected addPlaces")
+        }
+        XCTAssertEqual(ps.map(\.identifier), ["Europe/London", "Australia/Sydney"])
+
+        // "next tue 10am london" → Tue Sep 29 (+8, the Tue after the coming one).
+        guard case .jump(let h2, _, let city2, let off2, let wd, _) =
+                CommandParser.parse("next tue 10am london", catalog: catalog,
+                                    referenceDate: ref, homeTZ: la)?.intent else {
+            return XCTFail("expected jump")
+        }
+        XCTAssertEqual(h2, 10)
+        XCTAssertEqual(city2?.identifier, "Europe/London")
+        XCTAssertEqual(wd, 3)              // Tuesday
+        XCTAssertEqual(off2, 8)
+
+        // "noon" → jump 12:00 home (no city).
+        guard case .jump(let h3, let m3, let city3, _, _, _) =
+                CommandParser.parse("noon", catalog: catalog,
+                                    referenceDate: ref, homeTZ: la)?.intent else {
+            return XCTFail("expected jump")
+        }
+        XCTAssertEqual(h3, 12)
+        XCTAssertEqual(m3, 0)
+        XCTAssertNil(city3)
+
+        // "call with berlin and paris" → addPlaces 2.
+        guard case .addPlaces(let ps2) =
+                CommandParser.parse("call with berlin and paris", catalog: catalog,
+                                    referenceDate: ref, homeTZ: la)?.intent else {
+            return XCTFail("expected addPlaces")
+        }
+        XCTAssertEqual(ps2.map(\.identifier), ["Europe/Berlin", "Europe/Paris"])
+
+        XCTAssertNil(CommandParser.parse("asdf qwer", catalog: catalog,
+                                         referenceDate: ref, homeTZ: la))
+    }
+
     // MARK: - DST edge
 
     func testDSTTransition_LondonMar29() {
