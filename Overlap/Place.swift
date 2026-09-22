@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 struct Place: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
@@ -48,6 +51,7 @@ struct Place: Identifiable, Codable, Hashable {
 @Observable
 final class PlaceStore {
     private static let defaultsKey = "overlap.places.v1"
+    static let appGroupID = "group.land.mattberg.overlap"
 
     var places: [Place] = [] {
         didSet { save() }
@@ -56,23 +60,47 @@ final class PlaceStore {
     var home: Place? { places.first(where: { $0.isHome }) }
     var homeTimeZone: TimeZone { home?.timeZone ?? .current }
 
+    /// Shared file read by the widget extension (works with ad-hoc signing
+    /// where the App Group container may be unavailable).
+    static var sharedFileURL: URL {
+        let dir = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Overlap", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("places.json")
+    }
+
+    private static func groupDefaults() -> UserDefaults? {
+        UserDefaults(suiteName: appGroupID)
+    }
+
+    private static func decode(_ data: Data?) -> [Place]? {
+        guard let data,
+              let decoded = try? JSONDecoder().decode([Place].self, from: data),
+              !decoded.isEmpty else { return nil }
+        return decoded
+    }
+
     init() {
-        if let data = UserDefaults.standard.data(forKey: Self.defaultsKey),
-           let decoded = try? JSONDecoder().decode([Place].self, from: data),
-           !decoded.isEmpty {
-            places = decoded
-            if !places.contains(where: { $0.isHome }) {
-                places[0].isHome = true
-            }
+        // Shared file (widget contract) → App Group → legacy standard defaults.
+        if var p = Self.decode(try? Data(contentsOf: Self.sharedFileURL))
+            ?? Self.decode(Self.groupDefaults()?.data(forKey: Self.defaultsKey))
+            ?? Self.decode(UserDefaults.standard.data(forKey: Self.defaultsKey)) {
+            if !p.contains(where: { $0.isHome }) { p[0].isHome = true }
+            places = p
         } else {
             places = Self.defaultPlaces()
         }
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(places) {
-            UserDefaults.standard.set(data, forKey: Self.defaultsKey)
-        }
+        guard let data = try? JSONEncoder().encode(places) else { return }
+        UserDefaults.standard.set(data, forKey: Self.defaultsKey)
+        Self.groupDefaults()?.set(data, forKey: Self.defaultsKey)
+        try? data.write(to: Self.sharedFileURL, options: .atomic)
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 
     private static func defaultPlaces() -> [Place] {

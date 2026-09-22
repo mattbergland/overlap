@@ -1,5 +1,6 @@
 import SwiftUI
 import ServiceManagement
+import WidgetKit
 
 struct ContentView: View {
     var standalone: Bool = false
@@ -13,6 +14,7 @@ struct ContentView: View {
     @State private var selection: ClosedRange<Int>? = nil
     @State private var query = ""
     @State private var showToast = false
+    @State private var toastText = "Added to Calendar"
     @State private var pulseHour: Int? = nil
     @FocusState private var searchFocused: Bool
 
@@ -132,7 +134,7 @@ struct ContentView: View {
         }
         .overlay(alignment: .bottom) {
             if showToast {
-                Label("Added to Calendar", systemImage: "checkmark.circle.fill")
+                Label(toastText, systemImage: "checkmark.circle.fill")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.goodGreen)
                     .padding(.horizontal, 12)
@@ -413,6 +415,10 @@ struct ContentView: View {
                 }
             }
 
+            Button("Add widget to desktop…") {
+                flashToast("Right-click your desktop → Edit Widgets → Overlap")
+            }
+
             Divider()
 
             Toggle("Launch at Login", isOn: Binding(
@@ -424,7 +430,12 @@ struct ContentView: View {
                     } catch { }
                 }))
 
-            Toggle("Use 24-hour time", isOn: $use24)
+            Toggle("Use 24-hour time", isOn: Binding(
+                get: { use24 },
+                set: { v in
+                    use24 = v
+                    WidgetCenter.shared.reloadAllTimelines()
+                }))
 
             Divider()
 
@@ -555,7 +566,8 @@ struct ContentView: View {
         calendar.refresh(for: selectedDate, homeTZ: home)
     }
 
-    private func flashToast() {
+    private func flashToast(_ text: String = "Added to Calendar") {
+        toastText = text
         withAnimation(.snappy) { showToast = true }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
@@ -637,7 +649,7 @@ struct CommandBar: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .frame(width: 240)
+                .frame(width: 320)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.1)))
                 .offset(y: 32)

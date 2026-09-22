@@ -17,10 +17,23 @@ good call/meeting windows — like worldtimebuddy.com, but much nicer.
 - Drag across hours to select a meeting window — a summary bar shows the
   equivalent time in every city, tinted by whether it's work/fringe/night
   for them, with one-click copy to the clipboard.
-- "Best windows" glow track highlights spans where *everyone* is in
-  working hours (green), with an amber fallback tier.
-- Add cities by fuzzy search (name, identifier, or aliases like "NYC",
-  "SF", "Bangalore"). Reorder via context menu, set any city as home.
+- "Shared hours" track highlights spans where *everyone* is in working
+  hours (green), with an amber fallback tier and a best-effort hint when
+  no shared window exists.
+- Command bar: add cities by fuzzy search (name, identifier, aliases
+  like "NYC"), or type natural language — `3pm Tokyo tomorrow`,
+  `next tue 10am london`, `noon` — to jump the view to that instant.
+- Global hotkey (default ⌥⇧O) toggles a standalone window centered at
+  the mouse; record your own from the ⋯ menu.
+- Calendar integration: optionally shade your busy events on the home
+  row (EventKit), exclude them from shared windows, see "Conflicts"
+  chips on selections, and create events from a selection — Plain,
+  Slack, or Markdown invite formats.
+- Widgets: a Clocks widget (small/medium) and an Overlap strip widget
+  (medium/large) sharing your places via a shared file — right-click
+  your desktop → Edit Widgets → Overlap.
+- Add cities by fuzzy search. Reorder via context menu, set any city
+  as home.
 - Optional standalone window (pop-out button in the header).
 - Launch at Login, 12/24-hour clock, light + dark mode.
 
@@ -39,9 +52,11 @@ Or open `Overlap.xcodeproj` directly in Xcode and press ⌘R.
 ## Keyboard shortcuts
 
 - `⌘Q` — quit
-- `⌘F` — focus the city search field
-- `Esc` — clear the current selection / close the search dropdown
-- `←` / `→` — move the selected date one day back/forward
+- `⌘K` — focus the command bar
+- `Esc` — clear the command text / clear the selection / dismiss
+- `⌘←` / `⌘→` — move the selected date one day back/forward
+- `⌘T` — back to today
+- `⌥⇧O` — global hotkey: toggle the standalone window (configurable)
 
 ## Time math
 

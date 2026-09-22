@@ -9,16 +9,22 @@
 /* Begin PBXBuildFile section */
 		06FC304789FE76128EFD449A /* CommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2BB1658B55E8187CF4C54A /* CommandParser.swift */; };
 		0B46A3719AC00BFB21CB2A61 /* CityCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5915D8F86584336F4C25BA /* CityCatalog.swift */; };
+		134A31D4E22519C8A505B345 /* CityCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5915D8F86584336F4C25BA /* CityCatalog.swift */; };
 		1F360B19687A5C6E3B71357A /* InviteFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */; };
 		31A2756EA5A8FC3EFDCE437C /* OverlapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5845BF206A0A5C7EBFDC62 /* OverlapApp.swift */; };
+		33AB12DD2D326FBFA6ED7ED2 /* OverlapWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8C35AEEA569CC00CCD55D18E /* OverlapWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3BF126A06D940B25A0F2BFD4 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0770DEA8EF57FAE6A0A8A822 /* HotKeyManager.swift */; };
+		3C6C65C3B5C80FCCFBFDC036 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16D15802E7D5D291936CDC2 /* Place.swift */; };
 		40BFA903CA822F774A31D40E /* TimeMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */; };
 		58FE42C1DD7B02561FD91DF0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A5586064A94AF6A620303E /* ContentView.swift */; };
 		60337EA56ECA0F8FB197A4B6 /* SummaryBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20EA42CE7C93E9AF6E55A6C /* SummaryBar.swift */; };
+		66D0580FAED26B629C31F5D4 /* TimeMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */; };
 		68AFAD054D50CA7E285AF117 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE8F716A5130B1BD16FC99C /* CalendarService.swift */; };
 		693AD6CCEDBA59C830829A60 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E95454D05840752E349AE47C /* Theme.swift */; };
 		7C8B088C721C412FE63E4C12 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16D15802E7D5D291936CDC2 /* Place.swift */; };
+		852515332A67F9F00DD50067 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E95454D05840752E349AE47C /* Theme.swift */; };
 		98F913D8DBEDD4B79D0FD6E7 /* InviteFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */; };
+		A131D9193E5858B6E0BAEE61 /* OverlapWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64619CCF8E507B96E3153517 /* OverlapWidget.swift */; };
 		B1E7C4ABB3FE27BAAC4E7E21 /* OverlapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6159ADF21E69C8EDA8E5BAF3 /* OverlapTests.swift */; };
 		B5FD7D7AD65C5E8D9F2D60C4 /* CommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2BB1658B55E8187CF4C54A /* CommandParser.swift */; };
 		C465610AF1031E032D498F87 /* HourStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43BEA9F6EDB92931D969674 /* HourStrip.swift */; };
@@ -27,15 +33,42 @@
 		FDE9C82D2C0A2EE86A404EF7 /* TimeMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		9CE17E00AABAF73D03A4B77B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 66EA416549FFFC555ABFD400 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ACE4776DE5B58CD5C7BD5217;
+			remoteInfo = OverlapWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F8B5F84A528451555DD47A5C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				33AB12DD2D326FBFA6ED7ED2 /* OverlapWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		0770DEA8EF57FAE6A0A8A822 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
 		0CE8F716A5130B1BD16FC99C /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteFormatter.swift; sourceTree = "<group>"; };
 		59D9E64BA5941070DF7C36F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6159ADF21E69C8EDA8E5BAF3 /* OverlapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapTests.swift; sourceTree = "<group>"; };
+		64619CCF8E507B96E3153517 /* OverlapWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapWidget.swift; sourceTree = "<group>"; };
 		6D2BB1658B55E8187CF4C54A /* CommandParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandParser.swift; sourceTree = "<group>"; };
 		719B69CEE6F7321019A5B404 /* OverlapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OverlapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMath.swift; sourceTree = "<group>"; };
+		8C35AEEA569CC00CCD55D18E /* OverlapWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OverlapWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD5FB84FB8A3AC2710A4028E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BE5915D8F86584336F4C25BA /* CityCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityCatalog.swift; sourceTree = "<group>"; };
 		D1F45A6D0FEF48E8E8466FD6 /* Overlap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Overlap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE5845BF206A0A5C7EBFDC62 /* OverlapApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapApp.swift; sourceTree = "<group>"; };
@@ -52,6 +85,7 @@
 			children = (
 				D1F45A6D0FEF48E8E8466FD6 /* Overlap.app */,
 				719B69CEE6F7321019A5B404 /* OverlapTests.xctest */,
+				8C35AEEA569CC00CCD55D18E /* OverlapWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,8 +95,18 @@
 			children = (
 				DD1905ED2741E9AE4E669D0B /* Overlap */,
 				C516EF981154DDA3D5D178E8 /* OverlapTests */,
+				5AC92005099DC850E1518761 /* OverlapWidget */,
 				056AA80EF23DF3AE3F31CFE5 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		5AC92005099DC850E1518761 /* OverlapWidget */ = {
+			isa = PBXGroup;
+			children = (
+				BD5FB84FB8A3AC2710A4028E /* Info.plist */,
+				64619CCF8E507B96E3153517 /* OverlapWidget.swift */,
+			);
+			path = OverlapWidget;
 			sourceTree = "<group>";
 		};
 		C516EF981154DDA3D5D178E8 /* OverlapTests */ = {
@@ -101,10 +145,12 @@
 			buildConfigurationList = 941E7B49CC7F6BD67214FC06 /* Build configuration list for PBXNativeTarget "Overlap" */;
 			buildPhases = (
 				E809EC63F24E2FB098795958 /* Sources */,
+				F8B5F84A528451555DD47A5C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				85B7988510FE16B59B30FB0B /* PBXTargetDependency */,
 			);
 			name = Overlap;
 			packageProductDependencies = (
@@ -112,6 +158,23 @@
 			productName = Overlap;
 			productReference = D1F45A6D0FEF48E8E8466FD6 /* Overlap.app */;
 			productType = "com.apple.product-type.application";
+		};
+		ACE4776DE5B58CD5C7BD5217 /* OverlapWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DDF065C7BA54457AADB4B4C /* Build configuration list for PBXNativeTarget "OverlapWidget" */;
+			buildPhases = (
+				FEF1A76C2EE7C4123AD2DDB9 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OverlapWidget;
+			packageProductDependencies = (
+			);
+			productName = OverlapWidget;
+			productReference = 8C35AEEA569CC00CCD55D18E /* OverlapWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		B7A362A2DAE07A3525DDB668 /* OverlapTests */ = {
 			isa = PBXNativeTarget;
@@ -159,6 +222,7 @@
 			projectRoot = "";
 			targets = (
 				8E95B97913FF8DE5E7F200D7 /* Overlap */,
+				ACE4776DE5B58CD5C7BD5217 /* OverlapWidget */,
 				B7A362A2DAE07A3525DDB668 /* OverlapTests */,
 			);
 		};
@@ -197,7 +261,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FEF1A76C2EE7C4123AD2DDB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				134A31D4E22519C8A505B345 /* CityCatalog.swift in Sources */,
+				A131D9193E5858B6E0BAEE61 /* OverlapWidget.swift in Sources */,
+				3C6C65C3B5C80FCCFBFDC036 /* Place.swift in Sources */,
+				852515332A67F9F00DD50067 /* Theme.swift in Sources */,
+				66D0580FAED26B629C31F5D4 /* TimeMath.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		85B7988510FE16B59B30FB0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ACE4776DE5B58CD5C7BD5217 /* OverlapWidget */;
+			targetProxy = 9CE17E00AABAF73D03A4B77B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		35842FAAC3E0DBA74B5D9B99 /* Release */ = {
@@ -338,6 +422,50 @@
 			};
 			name = Debug;
 		};
+		BD478338409AAF943297EE28 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OverlapWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = land.mattberg.overlap.widget;
+				PRODUCT_NAME = OverlapWidget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C8C7B824E1A70A3CB9E9A357 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OverlapWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = land.mattberg.overlap.widget;
+				PRODUCT_NAME = OverlapWidget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		FD3058CE9DB28A8FD2575CC4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -409,6 +537,15 @@
 			buildConfigurations = (
 				FD3058CE9DB28A8FD2575CC4 /* Debug */,
 				35842FAAC3E0DBA74B5D9B99 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2DDF065C7BA54457AADB4B4C /* Build configuration list for PBXNativeTarget "OverlapWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BD478338409AAF943297EE28 /* Debug */,
+				C8C7B824E1A70A3CB9E9A357 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
