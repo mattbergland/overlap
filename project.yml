@@ -32,6 +32,37 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
+    dependencies:
+      - target: OverlapWidget
+        embed: true
+  OverlapWidget:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - OverlapWidget
+      - Overlap/Place.swift
+      - Overlap/TimeMath.swift
+      - Overlap/Theme.swift
+      - Overlap/CityCatalog.swift
+    info:
+      path: OverlapWidget/Info.plist
+      properties:
+        CFBundleName: OverlapWidget
+        CFBundleDisplayName: Overlap
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap.widget
+        PRODUCT_NAME: OverlapWidget
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_IDENTITY: "-"
+        SKIP_INSTALL: YES
   OverlapTests:
     type: bundle.unit-test
     platform: macOS
