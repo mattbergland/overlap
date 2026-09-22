@@ -119,4 +119,24 @@ final class CityCatalog {
 
         return Array((prefix + contains + idOnly).prefix(limit))
     }
+
+    typealias Entry = City
+
+    /// Strong match only: top result must prefix-match a name or alias,
+    /// or be an exact alias hit. Nil for weak/fuzzy matches.
+    func bestMatch(_ query: String) -> Entry? {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return nil }
+        // exact alias wins outright
+        for city in cities {
+            if city.aliases.contains(where: { $0.lowercased() == q }) { return city }
+        }
+        for city in cities {
+            if city.name.lowercased().hasPrefix(q) ||
+               city.aliases.contains(where: { $0.lowercased().hasPrefix(q) }) {
+                return city
+            }
+        }
+        return nil
+    }
 }

@@ -42,6 +42,7 @@ targets:
       - Overlap/CityCatalog.swift
       - Overlap/TimeMath.swift
       - Overlap/InviteFormatter.swift
+      - Overlap/CommandParser.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap.tests

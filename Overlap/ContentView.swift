@@ -13,7 +13,10 @@ struct ContentView: View {
     @State private var selection: ClosedRange<Int>? = nil
     @State private var query = ""
     @State private var showToast = false
+    @State private var pulseHour: Int? = nil
     @FocusState private var searchFocused: Bool
+
+    private var hotkey: HotKeyManager { .shared }
 
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
@@ -74,6 +77,16 @@ struct ContentView: View {
                         }
                     }
                     .overlay(alignment: .topLeading) { selectionPill }
+                    .overlay(alignment: .topLeading) {
+                        if let p = pulseHour {
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(Theme.accentB, lineWidth: 1.5)
+                                .shadow(color: Theme.accentB.opacity(0.8), radius: 5)
+                                .frame(width: colPitch - 1)
+                                .offset(x: stripX + CGFloat(p) * colPitch + 0.5)
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .animation(.snappy, value: store.places)
                 }
                 .overlay(alignment: .topLeading) { nowLine }
@@ -134,8 +147,38 @@ struct ContentView: View {
         .animation(.snappy, value: selection != nil)
         .animation(.snappy, value: hoverHour)
         .onExitCommand {
-            if !query.isEmpty { query = "" } else { selection = nil }
+            if !query.isEmpty { query = "" }
+            else if selection != nil { selection = nil }
+            else { dismiss() }
         }
+        .sheet(isPresented: Binding(
+            get: { hotkey.showRecorder },
+            set: { hotkey.showRecorder = $0 })) {
+            VStack(spacing: 12) {
+                Text("Press a shortcut (⌥/⇧/⌃/⌘ + key)")
+                    .font(.system(size: 12, weight: .medium))
+                Text("Esc to cancel")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                HotKeyRecorder(
+                    onCapture: { code, mods in
+                        hotkey.set(keyCode: code, modifiers: mods)
+                        hotkey.showRecorder = false
+                    },
+                    onCancel: { hotkey.showRecorder = false })
+                .frame(width: 220, height: 30)
+            }
+            .padding(20)
+        }
+        .onAppear {
+            HotKeyManager.shared.handler = { toggleMainWindow() }
+        }
+        .background(
+            // ⌘K — focus the command bar (hidden, always active)
+            Button("") { searchFocused = true }
+                .keyboardShortcut("k", modifiers: .command)
+                .frame(width: 0, height: 0).opacity(0)
+        )
     }
 
     /// X offset of the strip inside the rows container (row pad + left col + gap).
@@ -306,12 +349,14 @@ struct ContentView: View {
             .padding(.vertical, 5)
             .background(Theme.card, in: Capsule())
 
-            // Search
-            CitySearchField(query: $query, focused: $searchFocused) { city in
-                store.add(name: city.name, timeZoneID: city.identifier)
-                query = ""
-            }
-            .frame(width: 150)
+            // Command bar
+            CommandBar(query: $query,
+                       focused: $searchFocused,
+                       home: home,
+                       referenceDate: selectedDate,
+                       preview: jumpPreview,
+                       onRun: runQuery)
+            .frame(width: 190)
 
             // Pop-out window
             if !standalone {
@@ -333,6 +378,22 @@ struct ContentView: View {
 
     private var optionsMenu: some View {
         Menu {
+            Button("Global shortcut: \(hotkey.label)") {
+                if standalone {
+                    hotkey.showRecorder = true
+                } else {
+                    openWindow(id: "main")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        hotkey.showRecorder = true
+                    }
+                }
+            }
+            if hotkey.enabled {
+                Button("Clear shortcut") { hotkey.disable() }
+            }
+
+            Divider()
+
             Toggle("Show my calendar", isOn: Binding(
                 get: { calendar.enabled },
                 set: { on in
@@ -381,6 +442,115 @@ struct ContentView: View {
         .fixedSize()
     }
 
+    /// Toggle the standalone window for the global hotkey.
+    private func toggleMainWindow() {
+        if let w = NSApp.windows.first(where: { $0.title == "Overlap" }), w.isVisible {
+            w.orderOut(nil)
+            return
+        }
+        openWindow(id: "main")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NSApp.activate(ignoringOtherApps: true)
+            if let w = NSApp.windows.first(where: { $0.title == "Overlap" }) {
+                w.center()
+                let mouse = NSEvent.mouseLocation
+                var f = w.frame
+                f.origin.x = mouse.x - f.width / 2
+                f.origin.y = mouse.y - f.height / 2
+                w.setFrameOrigin(f.origin)
+                w.makeKeyAndOrderFront(nil)
+            }
+            searchFocused = true
+        }
+    }
+
+    // MARK: - Command bar
+
+    private var parsedCommand: ParsedCommand? {
+        CommandParser.parse(query, catalog: .shared,
+                            referenceDate: selectedDate, homeTZ: home)
+    }
+
+    /// "Jump to 3:00 PM Tokyo · Tue Sep 22" preview for the dropdown.
+    private var jumpPreview: String? {
+        guard let cmd = parsedCommand,
+              case .jump(_, _, let city, _, _, _) = cmd.intent,
+              let (instant, homeDay, _) = resolve(cmd) else { return nil }
+        let tz = city.flatMap { TimeZone(identifier: $0.identifier) } ?? home
+        let f = DateFormatter()
+        f.timeZone = tz
+        f.dateFormat = use24 ? "H:mm" : "h:mm a"
+        let df = DateFormatter()
+        df.timeZone = home
+        df.dateFormat = "EEE MMM d"
+        let where_ = city?.name ?? "home"
+        return "Jump to \(f.string(from: instant)) \(where_) · \(df.string(from: homeDay))"
+    }
+
+    /// Resolve a jump command to (instant, home-day, home column hour).
+    private func resolve(_ cmd: ParsedCommand) -> (Date, Date, Int)? {
+        guard case .jump(let h, let m, let city, let off, _, let md) = cmd.intent
+        else { return nil }
+        let tz = city.flatMap { TimeZone(identifier: $0.identifier) } ?? home
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = tz
+
+        var day = cal.startOfDay(for: selectedDate)
+        if let off {
+            day = cal.date(byAdding: .day, value: off, to: day) ?? day
+        } else if let md {
+            var c = cal.dateComponents([.year], from: selectedDate)
+            c.month = md.month; c.day = md.day
+            day = cal.date(from: c) ?? day
+            if day < cal.startOfDay(for: selectedDate) {
+                day = cal.date(byAdding: .year, value: 1, to: day) ?? day
+            }
+        }
+        var t = cal.dateComponents([.year, .month, .day], from: day)
+        t.hour = h; t.minute = m
+        guard let instant = cal.date(from: t) else { return nil }
+
+        var hcal = Calendar(identifier: .gregorian)
+        hcal.timeZone = home
+        let homeDay = hcal.startOfDay(for: instant)
+        let col = max(0, min(23, Int(instant.timeIntervalSince(homeDay) / 3600)))
+        return (instant, homeDay, col)
+    }
+
+    /// Execute the command-bar input (⏎).
+    private func runQuery() {
+        if let cmd = parsedCommand {
+            execute(cmd)
+        } else if let city = CityCatalog.shared.search(query).first {
+            store.add(name: city.name, timeZoneID: city.identifier)
+        }
+        query = ""
+    }
+
+    private func execute(_ cmd: ParsedCommand) {
+        switch cmd.intent {
+        case .addPlaces(let cities):
+            for c in cities where !store.places.contains(where: {
+                $0.timeZoneID == c.identifier }) {
+                store.add(name: c.name, timeZoneID: c.identifier)
+            }
+        case .jump(_, _, let city, _, _, _):
+            guard let (_, homeDay, col) = resolve(cmd) else { return }
+            if let city, !store.places.contains(where: { $0.timeZoneID == city.identifier }) {
+                store.add(name: city.name, timeZoneID: city.identifier)
+            }
+            withAnimation(.snappy) {
+                selectedDate = homeDay
+                selection = col...col
+            }
+            pulseHour = col
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.2))
+                pulseHour = nil
+            }
+        }
+    }
+
     private func refreshCalendar() {
         calendar.refresh(for: selectedDate, homeTZ: home)
     }
@@ -402,40 +572,56 @@ struct ContentView: View {
     }
 }
 
-// MARK: - City search field with dropdown
+// MARK: - Command bar with suggestions dropdown
 
-struct CitySearchField: View {
+struct CommandBar: View {
     @Binding var query: String
     @FocusState.Binding var focused: Bool
-    var onPick: (City) -> Void
+    var home: TimeZone
+    var referenceDate: Date
+    var preview: String?
+    var onRun: () -> Void
 
-    private var results: [City] { CityCatalog.shared.search(query) }
+    private var results: [City] { CityCatalog.shared.search(query, limit: 5) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-                Image(systemName: "plus.magnifyingglass")
+                Image(systemName: "text.cursor")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                TextField("Add a city…", text: $query)
+                TextField("Add a city, or try “3pm Tokyo tomorrow”", text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
                     .focused($focused)
-                    .onSubmit {
-                        if let first = results.first { onPick(first) }
-                    }
+                    .onSubmit { onRun() }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Theme.card, in: Capsule())
         }
         .overlay(alignment: .topLeading) {
-            if focused && !results.isEmpty {
+            if focused && (preview != nil || !results.isEmpty) {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(results) { city in
-                        Button {
-                            onPick(city)
-                        } label: {
+                    if let preview {
+                        Button { onRun() } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.accentB)
+                                Text(preview)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Divider().overlay(Color.white.opacity(0.08))
+                    }
+                    ForEach(results.prefix(preview == nil ? 5 : 4)) { city in
+                        Button { onRun() } label: {
                             HStack {
                                 Text(city.name)
                                     .font(.system(size: 13, weight: .medium))
@@ -451,7 +637,7 @@ struct CitySearchField: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .frame(width: 220)
+                .frame(width: 240)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.1)))
                 .offset(y: 32)

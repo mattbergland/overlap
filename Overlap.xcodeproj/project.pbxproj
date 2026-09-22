@@ -7,9 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06FC304789FE76128EFD449A /* CommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2BB1658B55E8187CF4C54A /* CommandParser.swift */; };
 		0B46A3719AC00BFB21CB2A61 /* CityCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5915D8F86584336F4C25BA /* CityCatalog.swift */; };
 		1F360B19687A5C6E3B71357A /* InviteFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */; };
 		31A2756EA5A8FC3EFDCE437C /* OverlapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5845BF206A0A5C7EBFDC62 /* OverlapApp.swift */; };
+		3BF126A06D940B25A0F2BFD4 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0770DEA8EF57FAE6A0A8A822 /* HotKeyManager.swift */; };
 		40BFA903CA822F774A31D40E /* TimeMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */; };
 		58FE42C1DD7B02561FD91DF0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A5586064A94AF6A620303E /* ContentView.swift */; };
 		60337EA56ECA0F8FB197A4B6 /* SummaryBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20EA42CE7C93E9AF6E55A6C /* SummaryBar.swift */; };
@@ -18,6 +20,7 @@
 		7C8B088C721C412FE63E4C12 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16D15802E7D5D291936CDC2 /* Place.swift */; };
 		98F913D8DBEDD4B79D0FD6E7 /* InviteFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */; };
 		B1E7C4ABB3FE27BAAC4E7E21 /* OverlapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6159ADF21E69C8EDA8E5BAF3 /* OverlapTests.swift */; };
+		B5FD7D7AD65C5E8D9F2D60C4 /* CommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2BB1658B55E8187CF4C54A /* CommandParser.swift */; };
 		C465610AF1031E032D498F87 /* HourStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43BEA9F6EDB92931D969674 /* HourStrip.swift */; };
 		D4997B8489F7DA011ABD79E6 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16D15802E7D5D291936CDC2 /* Place.swift */; };
 		F4C99B55105F33B9A087705D /* CityCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5915D8F86584336F4C25BA /* CityCatalog.swift */; };
@@ -25,10 +28,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0770DEA8EF57FAE6A0A8A822 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
 		0CE8F716A5130B1BD16FC99C /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteFormatter.swift; sourceTree = "<group>"; };
 		59D9E64BA5941070DF7C36F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6159ADF21E69C8EDA8E5BAF3 /* OverlapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlapTests.swift; sourceTree = "<group>"; };
+		6D2BB1658B55E8187CF4C54A /* CommandParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandParser.swift; sourceTree = "<group>"; };
 		719B69CEE6F7321019A5B404 /* OverlapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OverlapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B02BB3E2E2FBE7049AC6340 /* TimeMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMath.swift; sourceTree = "<group>"; };
 		BE5915D8F86584336F4C25BA /* CityCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityCatalog.swift; sourceTree = "<group>"; };
@@ -73,7 +78,9 @@
 			children = (
 				0CE8F716A5130B1BD16FC99C /* CalendarService.swift */,
 				BE5915D8F86584336F4C25BA /* CityCatalog.swift */,
+				6D2BB1658B55E8187CF4C54A /* CommandParser.swift */,
 				F1A5586064A94AF6A620303E /* ContentView.swift */,
+				0770DEA8EF57FAE6A0A8A822 /* HotKeyManager.swift */,
 				E43BEA9F6EDB92931D969674 /* HourStrip.swift */,
 				59D9E64BA5941070DF7C36F7 /* Info.plist */,
 				134C27B1D9D005AFDC7081D0 /* InviteFormatter.swift */,
@@ -163,6 +170,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F4C99B55105F33B9A087705D /* CityCatalog.swift in Sources */,
+				B5FD7D7AD65C5E8D9F2D60C4 /* CommandParser.swift in Sources */,
 				98F913D8DBEDD4B79D0FD6E7 /* InviteFormatter.swift in Sources */,
 				B1E7C4ABB3FE27BAAC4E7E21 /* OverlapTests.swift in Sources */,
 				7C8B088C721C412FE63E4C12 /* Place.swift in Sources */,
@@ -176,7 +184,9 @@
 			files = (
 				68AFAD054D50CA7E285AF117 /* CalendarService.swift in Sources */,
 				0B46A3719AC00BFB21CB2A61 /* CityCatalog.swift in Sources */,
+				06FC304789FE76128EFD449A /* CommandParser.swift in Sources */,
 				58FE42C1DD7B02561FD91DF0 /* ContentView.swift in Sources */,
+				3BF126A06D940B25A0F2BFD4 /* HotKeyManager.swift in Sources */,
 				C465610AF1031E032D498F87 /* HourStrip.swift in Sources */,
 				1F360B19687A5C6E3B71357A /* InviteFormatter.swift in Sources */,
 				31A2756EA5A8FC3EFDCE437C /* OverlapApp.swift in Sources */,
