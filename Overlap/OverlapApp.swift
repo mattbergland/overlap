@@ -3,11 +3,13 @@ import SwiftUI
 @main
 struct OverlapApp: App {
     @State private var store = PlaceStore()
+    @State private var calendar = CalendarService()
 
     var body: some Scene {
         MenuBarExtra {
             ContentView()
                 .environment(store)
+                .environment(calendar)
         } label: {
             MenuBarLabel()
                 .environment(store)
@@ -17,6 +19,7 @@ struct OverlapApp: App {
         Window("Overlap", id: "main") {
             ContentView(standalone: true)
                 .environment(store)
+                .environment(calendar)
                 .frame(minWidth: 800, minHeight: 320)
         }
         .windowResizability(.contentSize)

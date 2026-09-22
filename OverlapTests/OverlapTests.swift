@@ -68,6 +68,45 @@ final class OverlapTests: XCTestCase {
         XCTAssertEqual(effort, [9...9])
     }
 
+    func testGoodWindows_BusyExcludesColumn() {
+        let la = tz("America/Los_Angeles")
+        let places = [
+            Place(name: "LA", timeZoneID: "America/Los_Angeles", isHome: true),
+            Place(name: "NY", timeZoneID: "America/New_York"),
+            Place(name: "London", timeZoneID: "Europe/London"),
+        ]
+        let day = date("2026-09-21", in: la)
+
+        // Busy at home hour 9: the only work column disappears and the
+        // okay tier still excludes it.
+        let windows = TimeMath.goodWindows(places: places, on: day, home: la,
+                                           busyHomeHours: [9])
+        XCTAssertEqual(windows.work, [])
+        XCTAssertEqual(windows.okay, [7...8, 10...12])
+    }
+
+    // MARK: - InviteFormatter
+
+    func testInviteFormatter() {
+        let la = tz("America/Los_Angeles")
+        let places = [
+            Place(name: "LA", timeZoneID: "America/Los_Angeles", isHome: true),
+            Place(name: "NY", timeZoneID: "America/New_York"),
+        ]
+        let day = date("2026-09-21", in: la)
+        let sel = 9...10
+
+        XCTAssertEqual(
+            InviteFormatter.plain(date: day, places: places, selection: sel, home: la, use24: false),
+            "LA: Mon Sep 21 9:00 – 11:00 AM\nNY: Mon Sep 21 12:00 – 2:00 PM")
+        XCTAssertEqual(
+            InviteFormatter.slack(date: day, places: places, selection: sel, home: la, use24: false),
+            "*Mon Sep 21*\n• 9:00 – 11:00 AM  LA\n• 12:00 – 2:00 PM  NY")
+        XCTAssertEqual(
+            InviteFormatter.markdown(date: day, places: places, selection: sel, home: la, use24: false),
+            "**Mon Sep 21**\n\n| City | Local time |\n|---|---|\n| LA | 9:00 – 11:00 AM |\n| NY | 12:00 – 2:00 PM |")
+    }
+
     // MARK: - DST edge
 
     func testDSTTransition_LondonMar29() {

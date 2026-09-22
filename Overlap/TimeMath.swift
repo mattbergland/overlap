@@ -73,12 +73,16 @@ enum TimeMath {
     /// Home-hour ranges (of `date`) where EVERY place is in working hours
     /// (`work`), plus fallback ranges where every place is at least in
     /// `okay` hours but not all are in `work`.
-    static func goodWindows(places: [Place], on date: Date, home: TimeZone)
+    static func goodWindows(places: [Place], on date: Date, home: TimeZone,
+                            busyHomeHours: Set<Int> = [])
         -> (work: [ClosedRange<Int>], okay: [ClosedRange<Int>])
     {
         guard !places.isEmpty else { return ([], []) }
-        let tiers = (0..<24).map {
+        var tiers = (0..<24).map {
             columnTier(homeHour: $0, on: date, home: home, places: places)
+        }
+        for h in busyHomeHours where tiers.indices.contains(h) {
+            tiers[h] = .night
         }
         return (runs(of: .work, in: tiers), runs(of: .okay, in: tiers))
     }
@@ -101,10 +105,12 @@ enum TimeMath {
     /// Fallback when no shared work/okay window exists: score each home
     /// hour by how many places are working (×2) or in fringe hours (×1),
     /// then return the contiguous runs of max-scoring columns (≤ 2 runs).
-    static func bestEffortWindows(places: [Place], on date: Date, home: TimeZone) -> [ClosedRange<Int>] {
+    static func bestEffortWindows(places: [Place], on date: Date, home: TimeZone,
+                                  busyHomeHours: Set<Int> = []) -> [ClosedRange<Int>] {
         guard !places.isEmpty else { return [] }
         var scores = [Int](repeating: 0, count: 24)
         for h in 0..<24 {
+            if busyHomeHours.contains(h) { continue }
             let inst = instant(homeHour: h, on: date, home: home)
             for place in places {
                 switch tier(localHour: localHour(of: inst, in: place.timeZone)) {

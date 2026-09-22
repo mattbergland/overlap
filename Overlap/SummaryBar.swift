@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import EventKit
 
 /// Simple left-to-right wrapping layout.
 struct FlowLayout: Layout {
@@ -46,6 +47,11 @@ struct SummaryBar: View {
     let selection: ClosedRange<Int>
     let use24: Bool
     let onClear: () -> Void
+    let onToast: () -> Void
+
+    @Environment(CalendarService.self) private var calendar
+    @AppStorage("overlap.copyFormat") private var lastFormat = InviteFormatter.Format.plain.rawValue
+    @State private var eventTitle = ""
 
     private var headerDate: String {
         let f = DateFormatter()
@@ -71,11 +77,81 @@ struct SummaryBar: View {
         return ("\(s) – \(e)", worst)
     }
 
-    private var copyText: String {
-        places.map { p in
-            let (r, _) = range(for: p)
-            return "\(p.name): \(headerDate) \(r)"
-        }.joined(separator: "\n")
+    private var selStart: Date {
+        TimeMath.instant(homeHour: selection.lowerBound, on: date, home: home)
+    }
+    private var selEnd: Date {
+        TimeMath.instant(homeHour: selection.upperBound + 1, on: date, home: home)
+    }
+
+    private var conflicts: [BusyBlock] {
+        guard calendar.enabled else { return [] }
+        return calendar.busy.filter { $0.start < selEnd && $0.end > selStart }
+    }
+
+    private var copyFormat: InviteFormatter.Format {
+        InviteFormatter.Format(rawValue: lastFormat) ?? .plain
+    }
+
+    private func copyText(_ format: InviteFormatter.Format) -> String {
+        InviteFormatter.format(format, date: date, places: places,
+                               selection: selection, home: home, use24: use24)
+    }
+
+    private func copy(_ format: InviteFormatter.Format) {
+        lastFormat = format.rawValue
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(copyText(format), forType: .string)
+    }
+
+    private func createEvent() {
+        let title = eventTitle.isEmpty ? "Call" : eventTitle
+        let notes = copyText(.plain)
+        let start = selStart, end = selEnd
+        Task { @MainActor in
+            if await calendar.ensureAccess() {
+                do {
+                    try calendar.createEvent(title: title, start: start, end: end, notes: notes)
+                    onToast()
+                    return
+                } catch { }
+            }
+            openICS(title: title, start: start, end: end, notes: notes)
+        }
+    }
+
+    /// Fallback when EventKit access is denied: hand a .ics to Calendar.app.
+    private func openICS(title: String, start: Date, end: Date, notes: String) {
+        func esc(_ s: String) -> String {
+            s.replacingOccurrences(of: "\\", with: "\\\\")
+             .replacingOccurrences(of: "\n", with: "\\n")
+             .replacingOccurrences(of: ",", with: "\\,")
+             .replacingOccurrences(of: ";", with: "\\;")
+        }
+        let df = DateFormatter()
+        df.dateFormat = "yyyyMMdd'T'HHmmss"
+        df.timeZone = home
+        let stamp = DateFormatter()
+        stamp.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+        stamp.timeZone = TimeZone(identifier: "UTC")
+        let ics = """
+            BEGIN:VCALENDAR\r
+            VERSION:2.0\r
+            PRODID:-//Overlap//EN\r
+            BEGIN:VEVENT\r
+            UID:\(UUID().uuidString)@overlap\r
+            DTSTAMP:\(stamp.string(from: Date()))\r
+            DTSTART;TZID=\(home.identifier):\(df.string(from: start))\r
+            DTEND;TZID=\(home.identifier):\(df.string(from: end))\r
+            SUMMARY:\(esc(title))\r
+            DESCRIPTION:\(esc(notes))\r
+            END:VEVENT\r
+            END:VCALENDAR\r
+            """
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("overlap-event.ics")
+        try? ics.write(to: url, atomically: true, encoding: .utf8)
+        NSWorkspace.shared.open(url)
     }
 
     var body: some View {
@@ -97,26 +173,64 @@ struct SummaryBar: View {
                         .lineLimit(1)
                         .fixedSize()
                 }
+
+                let conflicts = conflicts
+                if let first = conflicts.first {
+                    Text(conflicts.count > 1
+                         ? "Conflicts: \(first.title) +\(conflicts.count - 1)"
+                         : "Conflicts: \(first.title)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Theme.badRed.opacity(0.15), in: Capsule())
+                        .overlay(Capsule().stroke(Theme.badRed, lineWidth: 1))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(copyText, forType: .string)
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.accentB)
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack(spacing: 8) {
+                    TextField("Call", text: $eventTitle)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(width: 64)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.07), in: Capsule())
+                        .onSubmit { }
 
-                Button(action: onClear) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
+                    Button(action: createEvent) {
+                        Label("Create event", systemImage: "calendar.badge.plus")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.accentB)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Menu {
+                        Button("Plain") { copy(.plain) }
+                        Button("Slack") { copy(.slack) }
+                        Button("Markdown") { copy(.markdown) }
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                            .font(.system(size: 11, weight: .semibold))
+                    } primaryAction: {
+                        copy(copyFormat)
+                    }
+                    .menuStyle(.button)
+                    .fixedSize()
+                    .foregroundStyle(Theme.accentB)
+
+                    Button(action: onClear) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
             }
             .padding(.top, 3)
         }
