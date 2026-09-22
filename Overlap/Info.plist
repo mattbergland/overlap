@@ -22,6 +22,10 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Overlap shows your meetings as busy blocks on your home row and can create events.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Overlap shows your meetings as busy blocks on your home row and can create events.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© Matt Bergland</string>
 	<key>NSPrincipalClass</key>
