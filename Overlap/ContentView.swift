@@ -5,12 +5,14 @@ struct ContentView: View {
     var standalone: Bool = false
 
     @Environment(PlaceStore.self) private var store
+    @Environment(CalendarService.self) private var calendar
     @AppStorage("use24Hour") private var use24 = false
 
     @State private var selectedDate = Date()
     @State private var hoverHour: Int? = nil
     @State private var selection: ClosedRange<Int>? = nil
     @State private var query = ""
+    @State private var showToast = false
     @FocusState private var searchFocused: Bool
 
     @Environment(\.openWindow) private var openWindow
@@ -26,6 +28,15 @@ struct ContentView: View {
 
     @State private var now = Date()
     private let timer = Timer.publish(every: 20, on: .main, in: .common).autoconnect()
+    private let calendarTimer = Timer.publish(every: 300, on: .main, in: .common).autoconnect()
+
+    private var busyHours: Set<Int> {
+        calendar.enabled ? calendar.busyHomeHours(for: selectedDate, homeTZ: home) : []
+    }
+
+    private var busyBlocks: [BusyBlock] {
+        calendar.enabled ? calendar.busy : []
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -42,6 +53,7 @@ struct ContentView: View {
                     BestWindowsBar(store: store,
                                    date: selectedDate,
                                    home: home,
+                                   busyHours: busyHours,
                                    selection: $selection)
                         .padding(.bottom, 8)
 
@@ -54,6 +66,7 @@ struct ContentView: View {
                                      home: home,
                                      use24: use24,
                                      isToday: isToday,
+                                     busy: busyBlocks,
                                      hoverHour: $hoverHour,
                                      selection: $selection)
                             .transition(.asymmetric(insertion: .push(from: .top).combined(with: .opacity),
@@ -71,13 +84,17 @@ struct ContentView: View {
                                places: store.places,
                                selection: selection,
                                use24: use24,
-                               onClear: { self.selection = nil })
+                               onClear: { self.selection = nil },
+                               onToast: { flashToast() })
                     .padding(.top, 12)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .padding(16)
         .onReceive(timer) { now = $0 }
+        .onReceive(calendarTimer) { _ in refreshCalendar() }
+        .onChange(of: selectedDate) { refreshCalendar() }
+        .onAppear { refreshCalendar() }
         .fontDesign(.rounded)
         .frame(width: Self.popoverWidth)
         .background(
@@ -100,6 +117,20 @@ struct ContentView: View {
             }
             .allowsHitTesting(false)
         }
+        .overlay(alignment: .bottom) {
+            if showToast {
+                Label("Added to Calendar", systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.goodGreen)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.white.opacity(0.1), in: Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
+                    .padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: showToast)
         .animation(.snappy, value: selection != nil)
         .animation(.snappy, value: hoverHour)
         .onExitCommand {
@@ -302,6 +333,27 @@ struct ContentView: View {
 
     private var optionsMenu: some View {
         Menu {
+            Toggle("Show my calendar", isOn: Binding(
+                get: { calendar.enabled },
+                set: { on in
+                    calendar.enabled = on
+                    if on {
+                        Task { await calendar.requestAccess() }
+                    } else {
+                        calendar.refresh()
+                    }
+                }))
+
+            if calendar.authorization == .denied || calendar.authorization == .restricted {
+                Button("Calendar access denied — open System Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
+
+            Divider()
+
             Toggle("Launch at Login", isOn: Binding(
                 get: { SMAppService.mainApp.status == .enabled },
                 set: { enabled in
@@ -327,6 +379,18 @@ struct ContentView: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
+    }
+
+    private func refreshCalendar() {
+        calendar.refresh(for: selectedDate, homeTZ: home)
+    }
+
+    private func flashToast() {
+        withAnimation(.snappy) { showToast = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.snappy) { showToast = false }
+        }
     }
 
     private func shiftDay(_ delta: Int) {

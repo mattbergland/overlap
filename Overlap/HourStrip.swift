@@ -10,6 +10,7 @@ struct PlaceRow: View {
     let home: TimeZone
     let use24: Bool
     let isToday: Bool
+    var busy: [BusyBlock] = []
     @Binding var hoverHour: Int?
     @Binding var selection: ClosedRange<Int>?
 
@@ -33,6 +34,7 @@ struct PlaceRow: View {
                       date: date,
                       home: home,
                       use24: use24,
+                      busy: place.isHome ? busy : [],
                       hoverHour: $hoverHour,
                       selection: $selection,
                       dragAnchor: $dragAnchor)
@@ -147,6 +149,7 @@ struct HourStrip: View {
     let date: Date
     let home: TimeZone
     let use24: Bool
+    var busy: [BusyBlock] = []
     @Binding var hoverHour: Int?
     @Binding var selection: ClosedRange<Int>?
     @Binding var dragAnchor: Int?
@@ -181,6 +184,11 @@ struct HourStrip: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            // Busy spans (home row only): hatched rounded rects
+            ForEach(busy.indices, id: \.self) { i in
+                busyView(busy[i])
+            }
 
             // Selection band
             if let sel = selection {
@@ -255,7 +263,57 @@ struct HourStrip: View {
         }
     }
 
+    private func homeMidnight() -> Date {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = home
+        return cal.startOfDay(for: date)
+    }
+
+    /// Busy block overlapping home-hour column `h`, if any.
+    private func busyBlock(atColumn h: Int) -> BusyBlock? {
+        let hStart = TimeMath.instant(homeHour: h, on: date, home: home)
+        let hEnd = hStart.addingTimeInterval(3600)
+        return busy.first { $0.start < hEnd && $0.end > hStart }
+    }
+
+    private func truncatedTitle(_ t: String) -> String {
+        t.count > 18 ? String(t.prefix(17)) + "…" : t
+    }
+
+    @ViewBuilder
+    private func busyView(_ b: BusyBlock) -> some View {
+        let midnight = homeMidnight()
+        let fracS = max(0, b.start.timeIntervalSince(midnight) / 3600)
+        let fracE = min(24, b.end.timeIntervalSince(midnight) / 3600)
+        if fracE > fracS {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Theme.base.opacity(0.55))
+                .overlay {
+                    Canvas { ctx, size in
+                        var path = Path()
+                        var x: CGFloat = -size.height
+                        while x < size.width {
+                            path.move(to: CGPoint(x: x, y: size.height))
+                            path.addLine(to: CGPoint(x: x + size.height, y: 0))
+                            x += 6
+                        }
+                        ctx.stroke(path, with: .color(.white.opacity(0.18)), lineWidth: 1)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .overlay(RoundedRectangle(cornerRadius: 4)
+                    .stroke(b.calendarColor ?? Color.white.opacity(0.25), lineWidth: 1))
+                .frame(width: CGFloat(fracE - fracS) * colPitch,
+                       height: ContentView.cellHeight - 6)
+                .offset(x: CGFloat(fracS) * colPitch, y: 3)
+                .allowsHitTesting(false)
+        }
+    }
+
     private func cellLabel(h: Int, comps: DateComponents, hovered: Bool) -> String {
+        if hovered, let b = busyBlock(atColumn: h) {
+            return truncatedTitle(b.title)
+        }
         if h == 0 {
             // day boundary marker: abbreviated weekday
             let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -279,16 +337,19 @@ struct BestWindowsBar: View {
     let store: PlaceStore
     let date: Date
     let home: TimeZone
+    var busyHours: Set<Int> = []
     @Binding var selection: ClosedRange<Int>?
 
     @AppStorage("use24Hour") private var use24 = false
 
     private var windows: (work: [ClosedRange<Int>], okay: [ClosedRange<Int>]) {
-        TimeMath.goodWindows(places: store.places, on: date, home: home)
+        TimeMath.goodWindows(places: store.places, on: date, home: home,
+                             busyHomeHours: busyHours)
     }
 
     private var bestEffort: [ClosedRange<Int>] {
-        TimeMath.bestEffortWindows(places: store.places, on: date, home: home)
+        TimeMath.bestEffortWindows(places: store.places, on: date, home: home,
+                                   busyHomeHours: busyHours)
     }
 
     private func fmt(_ r: ClosedRange<Int>) -> String {

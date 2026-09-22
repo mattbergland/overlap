@@ -20,6 +20,8 @@ targets:
         CFBundleVersion: "1"
         NSHumanReadableCopyright: "© Matt Bergland"
         NSPrincipalClass: NSApplication
+        NSCalendarsFullAccessUsageDescription: "Overlap shows your meetings as busy blocks on your home row and can create events."
+        NSCalendarsUsageDescription: "Overlap shows your meetings as busy blocks on your home row and can create events."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap
@@ -39,6 +41,7 @@ targets:
       - Overlap/Place.swift
       - Overlap/CityCatalog.swift
       - Overlap/TimeMath.swift
+      - Overlap/InviteFormatter.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: land.mattberg.overlap.tests
